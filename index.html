@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Excel/CSV File</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-5">Upload and view Excel/CSV File</h1>
+    <form>
+      <div class="mb-3">
+        <label for="inputFile" class="form-label">Select a file & view its column named 'first name' & 'age' <br>if file doesn't have these columns then output will be undefined':</label>
+        <input type="file" class="form-control" id="inputFile" accept=".csv, .xlsx">
+      </div>
+       <div class="mb-3 d-grid gap-2 d-md-block">
+      <button type="button" class="btn btn-primary" id="readButton">Read</button>
+      </div>
+      <textarea class="form-control mt-3" id="outputTextarea" rows="10" readonly></textarea>
+    </form>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+  <script>
+      const inputFile = document.getElementById('inputFile');
+const readButton = document.getElementById('readButton');
+const outputTextarea = document.getElementById('outputTextarea');
+
+readButton.addEventListener('click', () => {
+  const file = inputFile.files[0];
+
+  if (file.type === 'text/csv' || file.type === 'application/vnd.ms-excel' || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const contents = event.target.result;
+
+      // Parse CSV or XLSX data
+      let data;
+      if (file.type === 'text/csv' || file.type === 'application/vnd.ms-excel') {
+        data = parseCSV(contents);
+      } else {
+        data = parseXLSX(contents);
+      }
+      // Print selected columns
+      const output = data.map((row) => {
+     
+        return row['first name'] + ', ' + row['age'];
+      }).join('\n');
+      outputTextarea.value = output;
+    };
+
+    reader.readAsBinaryString(file);
+  } else {
+    alert('Please select a CSV or Excel file.');
+  }
+});
+
+function parseCSV(contents) {
+
+  const lines = contents.split('\n');
+  
+  const headers = lines[0].split(',');
+  const data = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',');
+    const row = {};
+
+    for (let j = 0; j < headers.length; j++) {
+      row[headers[j]] = values[j];
+    }
+
+    data.push(row);
+  }
+
+  return data;
+}
+
+function parseXLSX(contents) {
+  const workbook = XLSX.read(contents, { type: 'binary' });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+  // Convert array of arrays to array of objects
+  const headers = data[0];
+  const rows = data.slice(1);
+  return rows.map((row) => {
+    const obj = {};
+    for (let i = 0; i < headers.length; i++) {
+      obj[headers[i]] = row[i];
+    }
+    return obj;
+  });
+}
+
+
+  </script>
+</body>
+</html>
